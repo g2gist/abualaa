@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>فاتورة {{ invoice.invoice_number }}</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            direction: rtl;
+            text-align: right;
+            margin: 0;
+            padding: 20px;
+            color: #333;
+            position: relative;
+        }
+
+        /* العلامة المائية للفاتورة */
+        .invoice-watermark {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-20deg);
+            opacity: 0.2;
+            z-index: -1;
+            max-width: 500px;
+            max-height: 500px;
+            pointer-events: none;
+        }
+
+        .invoice-watermark img {
+            width: 100%;
+            height: auto;
+            filter: grayscale(30%);
+        }
+        
+        .invoice-header {
+            border-bottom: 3px solid #2c3e50;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+        }
+        
+        .company-info {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        
+        .company-name {
+            font-size: 2.5em;
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+        
+        .company-details {
+            font-size: 1.1em;
+            color: #666;
+        }
+        
+        .invoice-title {
+            text-align: center;
+            font-size: 2em;
+            font-weight: bold;
+            color: #e74c3c;
+            margin: 20px 0;
+        }
+        
+        .invoice-info {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 30px;
+        }
+        
+        .invoice-details, .customer-details {
+            width: 45%;
+        }
+        
+        .detail-box {
+            border: 2px solid #ecf0f1;
+            padding: 15px;
+            border-radius: 8px;
+            background-color: #f8f9fa;
+        }
+        
+        .detail-title {
+            font-weight: bold;
+            font-size: 1.2em;
+            color: #2c3e50;
+            margin-bottom: 10px;
+            border-bottom: 1px solid #bdc3c7;
+            padding-bottom: 5px;
+        }
+        
+        .detail-item {
+            margin-bottom: 8px;
+        }
+        
+        .detail-label {
+            font-weight: bold;
+            color: #555;
+        }
+        
+        .items-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 30px 0;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .items-table th {
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            color: white;
+            padding: 15px;
+            text-align: center;
+            font-weight: bold;
+        }
+        
+        .items-table td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: center;
+        }
+        
+        .items-table tr:nth-child(even) {
+            background-color: #f8f9fa;
+        }
+        
+        .total-section {
+            margin-top: 30px;
+            text-align: left;
+        }
+        
+        .total-table {
+            width: 300px;
+            margin-right: auto;
+            border-collapse: collapse;
+        }
+        
+        .total-table td {
+            padding: 10px;
+            border: 1px solid #ddd;
+        }
+        
+        .total-label {
+            background-color: #ecf0f1;
+            font-weight: bold;
+        }
+        
+        .grand-total {
+            background: linear-gradient(135deg, #27ae60 0%, #229954 100%);
+            color: white;
+            font-weight: bold;
+            font-size: 1.2em;
+        }
+        
+        .paid-stamp {
+            text-align: center;
+            margin: 30px 0;
+        }
+        
+        .paid-stamp.paid {
+            color: #27ae60;
+            font-size: 3em;
+            font-weight: bold;
+            text-transform: uppercase;
+            border: 5px solid #27ae60;
+            padding: 20px;
+            display: inline-block;
+            transform: rotate(-15deg);
+        }
+        
+        .terms {
+            margin-top: 40px;
+            padding: 20px;
+            background-color: #f8f9fa;
+            border-right: 5px solid #3498db;
+        }
+        
+        .terms-title {
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+        
+        .footer {
+            text-align: center;
+            margin-top: 50px;
+            padding-top: 20px;
+            border-top: 2px solid #ecf0f1;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <!-- العلامة المائية -->
+    {% if company_settings.logo %}
+        <div class="invoice-watermark">
+            <img src="{{ company_settings.logo.url }}" alt="علامة مائية">
+        </div>
+    {% endif %}
+
+    <!-- رأس الفاتورة -->
+    <div class="invoice-header">
+        <div class="company-info">
+            <div class="company-name">
+                {% if company_settings %}
+                    {{ company_settings.company_name }}
+                {% else %}
+                    محلات أبو علاء
+                {% endif %}
+            </div>
+            <div class="company-details">
+                {% if company_settings %}
+                    <div>{{ company_settings.address }}</div>
+                    <div>هاتف: {{ company_settings.phone }} | بريد: {{ company_settings.email }}</div>
+                {% else %}
+                    <div>المملكة العربية السعودية</div>
+                    <div>هاتف: +966 XX XXX XXXX | بريد: info@abualaastores.com</div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="invoice-title">فاتورة</div>
+    </div>
+    
+    <!-- معلومات الفاتورة والعميل -->
+    <div class="invoice-info">
+        <div class="invoice-details">
+            <div class="detail-box">
+                <div class="detail-title">تفاصيل الفاتورة</div>
+                <div class="detail-item">
+                    <span class="detail-label">رقم الفاتورة:</span> {{ invoice.invoice_number }}
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">تاريخ الإصدار:</span> {{ invoice.created_date|date:"Y-m-d" }}
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">تاريخ الاستحقاق:</span> {{ invoice.debt.due_date|date:"Y-m-d" }}
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">حالة الفاتورة:</span> 
+                    {% if invoice.debt.status == 'paid' %}
+                        مدفوعة
+                    {% elif invoice.debt.status == 'overdue' %}
+                        متأخرة
+                    {% else %}
+                        نشطة
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="customer-details">
+            <div class="detail-box">
+                <div class="detail-title">بيانات العميل</div>
+                <div class="detail-item">
+                    <span class="detail-label">الاسم:</span> {{ invoice.debt.customer.name }}
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">الهاتف:</span> {{ invoice.debt.customer.phone }}
+                </div>
+                {% if invoice.debt.customer.email %}
+                <div class="detail-item">
+                    <span class="detail-label">البريد:</span> {{ invoice.debt.customer.email }}
+                </div>
+                {% endif %}
+                {% if invoice.debt.customer.address %}
+                <div class="detail-item">
+                    <span class="detail-label">العنوان:</span> {{ invoice.debt.customer.address }}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- جدول البنود -->
+    <table class="items-table">
+        <thead>
+            <tr>
+                <th>الوصف</th>
+                <th>المبلغ</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>{{ invoice.debt.description }}</td>
+                <td>{{ invoice.debt.amount|floatformat:2 }} {% if company_settings %}{{ company_settings.currency_symbol }}{% else %}د.ع{% endif %}</td>
+            </tr>
+        </tbody>
+    </table>
+    
+    <!-- الإجماليات -->
+    <div class="total-section">
+        <table class="total-table">
+            <tr>
+                <td class="total-label">المبلغ الأصلي:</td>
+                <td>{{ invoice.debt.amount|floatformat:2 }} {% if company_settings %}{{ company_settings.currency_symbol }}{% else %}د.ع{% endif %}</td>
+            </tr>
+            <tr>
+                <td class="total-label">المدفوع:</td>
+                <td>{{ invoice.debt.total_paid|floatformat:2 }} {% if company_settings %}{{ company_settings.currency_symbol }}{% else %}د.ع{% endif %}</td>
+            </tr>
+            <tr class="grand-total">
+                <td>المبلغ المتبقي:</td>
+                <td>{{ invoice.debt.remaining_amount|floatformat:2 }} {% if company_settings %}{{ company_settings.currency_symbol }}{% else %}د.ع{% endif %}</td>
+            </tr>
+        </table>
+    </div>
+    
+    <!-- ختم المدفوع -->
+    {% if invoice.debt.status == 'paid' %}
+    <div class="paid-stamp">
+        <div class="paid">مدفوع</div>
+    </div>
+    {% endif %}
+    
+    <!-- الشروط والأحكام -->
+    {% if company_settings.invoice_terms %}
+    <div class="terms">
+        <div class="terms-title">الشروط والأحكام:</div>
+        <div>{{ company_settings.invoice_terms }}</div>
+    </div>
+    {% endif %}
+    
+    <!-- التذييل -->
+    <div class="footer">
+        <div>شكراً لتعاملكم معنا</div>
+        <div>تم إنشاء هذه الفاتورة إلكترونياً في {{ invoice.created_at|date:"Y-m-d H:i" }}</div>
+        <div style="margin-top: 10px; font-size: 10px; color: #999; text-align: center;">
+            تطوير: المبرمج خالد شجاع © 2025 | نظام إدارة العملاء والديون
+        </div>
+    </div>
+</body>
+</html>

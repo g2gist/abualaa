@@ -1,0 +1,193 @@
+{% extends 'base.html' %}
+{% load currency_tags %}
+
+{% block title %}تسجيل دفعة - {{ debt.customer.name }} - محلات أبو علاء{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">
+        <i class="fas fa-credit-card me-2"></i>
+        تسجيل دفعة - {{ debt.customer.name }}
+    </h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <a href="{% url 'debt_detail' debt.id %}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-right me-1"></i>العودة للدين
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="amount" class="form-label">
+                                <i class="fas fa-money-bill-wave me-1"></i>مبلغ الدفعة *
+                            </label>
+                            <div class="input-group">
+                                <input type="number" class="form-control" id="amount" name="amount"
+                                       step="0.01" min="0.01" max="{{ debt.remaining_amount }}" required>
+                                <span class="input-group-text">{% currency_symbol %}</span>
+                            </div>
+                            <div class="form-text">
+                                الحد الأقصى: {{ debt.remaining_amount|currency }}
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label for="payment_method" class="form-label">
+                                <i class="fas fa-credit-card me-1"></i>طريقة الدفع *
+                            </label>
+                            <select class="form-select" id="payment_method" name="payment_method" required>
+                                <option value="">اختر طريقة الدفع</option>
+                                {% for value, label in payment_methods %}
+                                <option value="{{ value }}">{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="notes" class="form-label">
+                            <i class="fas fa-sticky-note me-1"></i>ملاحظات
+                        </label>
+                        <textarea class="form-control" id="notes" name="notes" 
+                                  rows="3" placeholder="أي ملاحظات إضافية..."></textarea>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between">
+                        <button type="submit" class="btn btn-success">
+                            <i class="fas fa-save me-1"></i>
+                            تسجيل الدفعة
+                        </button>
+                        
+                        <a href="{% url 'debt_detail' debt.id %}" class="btn btn-outline-secondary">
+                            <i class="fas fa-times me-1"></i>إلغاء
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <!-- معلومات الدين -->
+        <div class="card">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="fas fa-info-circle me-1"></i>معلومات الدين
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="form-label text-muted">العميل</label>
+                    <p class="mb-0">
+                        <strong>{{ debt.customer.name }}</strong>
+                        <br>
+                        <small class="text-muted">{{ debt.customer.phone }}</small>
+                    </p>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label text-muted">المبلغ الأصلي</label>
+                    <p class="mb-0">
+                        <strong class="text-primary">{{ debt.amount|currency }}</strong>
+                    </p>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label text-muted">المدفوع سابقاً</label>
+                    <p class="mb-0">
+                        <strong class="text-success">{{ debt.total_paid|currency }}</strong>
+                    </p>
+                </div>
+
+                <div class="mb-0">
+                    <label class="form-label text-muted">المبلغ المتبقي</label>
+                    <p class="mb-0">
+                        <strong class="text-warning">{{ debt.remaining_amount|currency }}</strong>
+                    </p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- أزرار سريعة -->
+        <div class="card mt-3">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="fas fa-bolt me-1"></i>دفع سريع
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <button type="button" class="btn btn-outline-success btn-sm" 
+                            onclick="setAmount('{{ debt.remaining_amount }}')">
+                        دفع المبلغ كاملاً
+                    </button>
+                    
+                    {% if debt.remaining_amount >= 100 %}
+                    <button type="button" class="btn btn-outline-info btn-sm" 
+                            onclick="setAmount('{{ debt.remaining_amount|floatformat:0|add:'-50'|floatformat:0 }}')">
+                        دفع نصف المبلغ
+                    </button>
+                    {% endif %}
+                    
+                    {% if debt.remaining_amount >= 200 %}
+                    <button type="button" class="btn btn-outline-secondary btn-sm" 
+                            onclick="setAmount('100')">
+                        دفع 100 ريال
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- تحذيرات -->
+        <div class="card mt-3">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="fas fa-exclamation-triangle me-1"></i>تنبيهات
+                </h6>
+            </div>
+            <div class="card-body">
+                <ul class="list-unstyled mb-0">
+                    <li class="mb-2">
+                        <i class="fas fa-check text-success me-2"></i>
+                        تأكد من صحة المبلغ
+                    </li>
+                    <li class="mb-2">
+                        <i class="fas fa-credit-card text-info me-2"></i>
+                        اختر طريقة الدفع الصحيحة
+                    </li>
+                    <li class="mb-2">
+                        <i class="fas fa-clock text-warning me-2"></i>
+                        سيتم تسجيل الوقت الحالي
+                    </li>
+                    <li>
+                        <i class="fas fa-save text-primary me-2"></i>
+                        لا يمكن التراجع بعد الحفظ
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function setAmount(amount) {
+    document.getElementById('amount').value = parseFloat(amount).toFixed(2);
+}
+
+// تعيين المبلغ المتبقي كقيمة افتراضية
+document.addEventListener('DOMContentLoaded', function() {
+    const amountInput = document.getElementById('amount');
+    if (!amountInput.value) {
+        amountInput.value = '{{ debt.remaining_amount|floatformat:2 }}';
+    }
+});
+</script>
+{% endblock %}

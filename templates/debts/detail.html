@@ -1,0 +1,229 @@
+{% extends 'base.html' %}
+{% load currency_tags %}
+
+{% block title %}تفاصيل الدين - {{ debt.customer.name }} - محلات أبو علاء{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">
+        <i class="fas fa-money-bill-wave me-2"></i>
+        تفاصيل الدين - {{ debt.customer.name }}
+    </h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <div class="btn-group me-2">
+            {% if debt.remaining_amount > 0 %}
+            <a href="{% url 'payment_create' debt.id %}" class="btn btn-success">
+                <i class="fas fa-credit-card me-1"></i>تسجيل دفعة
+            </a>
+            {% endif %}
+            {% if debt.invoice %}
+            <a href="{% url 'invoice_pdf' debt.invoice.id %}" class="btn btn-outline-primary" target="_blank">
+                <i class="fas fa-file-pdf me-1"></i>طباعة الفاتورة
+            </a>
+            {% else %}
+            <span class="btn btn-outline-secondary disabled">
+                <i class="fas fa-file-pdf me-1"></i>لا توجد فاتورة
+            </span>
+            {% endif %}
+        </div>
+        <a href="{% url 'debt_list' %}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-right me-1"></i>العودة للقائمة
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <!-- معلومات الدين -->
+    <div class="col-md-4 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-info-circle me-2"></i>معلومات الدين
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="form-label text-muted">العميل</label>
+                    <p class="mb-0">
+                        <a href="{% url 'customer_detail' debt.customer.id %}" class="text-decoration-none">
+                            <strong>{{ debt.customer.name }}</strong>
+                        </a>
+                        <br>
+                        <small class="text-muted">{{ debt.customer.phone }}</small>
+                    </p>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label text-muted">المبلغ الأصلي</label>
+                    <p class="mb-0">
+                        <strong class="text-primary">{{ debt.amount|currency }}</strong>
+                    </p>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label text-muted">تاريخ الإنشاء</label>
+                    <p class="mb-0">{{ debt.created_date|date:"Y-m-d H:i" }}</p>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label text-muted">تاريخ الاستحقاق</label>
+                    <p class="mb-0">
+                        {{ debt.due_date|date:"Y-m-d" }}
+                        {% if debt.is_overdue %}
+                            <span class="badge bg-danger ms-1">متأخر</span>
+                        {% elif debt.is_due_soon %}
+                            <span class="badge bg-warning ms-1">مستحق قريباً</span>
+                        {% endif %}
+                    </p>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label text-muted">الحالة</label>
+                    <p class="mb-0">
+                        {% if debt.status == 'paid' %}
+                            <span class="badge bg-success">مدفوع</span>
+                        {% elif debt.status == 'overdue' %}
+                            <span class="badge bg-danger">متأخر</span>
+                        {% elif debt.status == 'active' %}
+                            <span class="badge bg-primary">نشط</span>
+                        {% else %}
+                            <span class="badge bg-secondary">{{ debt.get_status_display }}</span>
+                        {% endif %}
+                    </p>
+                </div>
+                
+                <div class="mb-0">
+                    <label class="form-label text-muted">أنشئ بواسطة</label>
+                    <p class="mb-0">{{ debt.created_by.first_name|default:debt.created_by.username }}</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- الملخص المالي -->
+        <div class="card mt-3">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-chart-pie me-2"></i>الملخص المالي
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row text-center mb-3">
+                    <div class="col-6">
+                        <div class="border-end">
+                            <h4 class="text-primary mb-1">{{ debt.amount|currency }}</h4>
+                            <small class="text-muted">المبلغ الأصلي</small>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <h4 class="text-success mb-1">{{ debt.total_paid|currency }}</h4>
+                        <small class="text-muted">المدفوع</small>
+                    </div>
+                </div>
+                
+                <div class="text-center">
+                    {% if debt.remaining_amount > 0 %}
+                        <h3 class="text-warning mb-1">{{ debt.remaining_amount|currency }}</h3>
+                        <small class="text-muted">المبلغ المتبقي</small>
+                    {% else %}
+                        <h3 class="text-success mb-1">مسدد بالكامل</h3>
+                        <small class="text-muted">تم السداد</small>
+                    {% endif %}
+                </div>
+                
+                <!-- شريط التقدم -->
+                <div class="mt-3">
+                    {% widthratio debt.total_paid debt.amount 100 as progress_percent %}
+                    <div class="progress">
+                        <div class="progress-bar bg-success" role="progressbar" 
+                             style="width: {{ progress_percent }}%" 
+                             aria-valuenow="{{ progress_percent }}" 
+                             aria-valuemin="0" aria-valuemax="100">
+                            {{ progress_percent }}%
+                        </div>
+                    </div>
+                    <small class="text-muted">نسبة السداد</small>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- الوصف والدفعات -->
+    <div class="col-md-8">
+        <!-- وصف الدين -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-file-alt me-2"></i>وصف الدين
+                </h5>
+            </div>
+            <div class="card-body">
+                <p class="mb-0">{{ debt.description|linebreaks }}</p>
+            </div>
+        </div>
+        
+        <!-- قائمة الدفعات -->
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-credit-card me-2"></i>
+                    الدفعات ({{ payments.count }})
+                </h5>
+                {% if debt.remaining_amount > 0 %}
+                <a href="{% url 'payment_create' debt.id %}" class="btn btn-sm btn-success">
+                    <i class="fas fa-plus me-1"></i>إضافة دفعة
+                </a>
+                {% endif %}
+            </div>
+            <div class="card-body">
+                {% if payments %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>المبلغ</th>
+                                <th>طريقة الدفع</th>
+                                <th>تاريخ الدفع</th>
+                                <th>استلم بواسطة</th>
+                                <th>ملاحظات</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for payment in payments %}
+                            <tr>
+                                <td>
+                                    <strong class="text-success">{{ payment.amount|currency }}</strong>
+                                </td>
+                                <td>
+                                    <span class="badge bg-info">{{ payment.get_payment_method_display }}</span>
+                                </td>
+                                <td>{{ payment.payment_date|date:"Y-m-d H:i" }}</td>
+                                <td>{{ payment.received_by.first_name|default:payment.received_by.username }}</td>
+                                <td>
+                                    {% if payment.notes %}
+                                        {{ payment.notes|truncatechars:50 }}
+                                    {% else %}
+                                        <span class="text-muted">لا توجد ملاحظات</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-4">
+                    <i class="fas fa-credit-card fa-3x text-muted mb-3"></i>
+                    <h5 class="text-muted">لا توجد دفعات لهذا الدين</h5>
+                    <p class="text-muted">ابدأ بتسجيل أول دفعة</p>
+                    {% if debt.remaining_amount > 0 %}
+                    <a href="{% url 'payment_create' debt.id %}" class="btn btn-success">
+                        <i class="fas fa-plus me-1"></i>تسجيل دفعة
+                    </a>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

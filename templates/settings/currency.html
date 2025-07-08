@@ -1,0 +1,132 @@
+{% extends 'base.html' %}
+{% load currency_tags %}
+
+{% block title %}إعدادات العملة{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- عنوان الصفحة -->
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">
+            <i class="fas fa-coins me-2"></i>إعدادات العملة
+        </h1>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">تغيير العملة</h6>
+                </div>
+                <div class="card-body">
+                    {% if messages %}
+                        {% for message in messages %}
+                            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        <div class="mb-4">
+                            <label class="form-label">العملة الحالية</label>
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle me-2"></i>
+                                العملة المستخدمة حالياً: <strong>{{ current_currency }}</strong>
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label for="currency" class="form-label">اختر العملة الجديدة</label>
+                            <select class="form-select" id="currency" name="currency" required>
+                                <option value="">-- اختر العملة --</option>
+                                <option value="IQD" {% if current_currency_code == 'IQD' %}selected{% endif %}>
+                                    دينار عراقي (IQD)
+                                </option>
+                                <option value="USD" {% if current_currency_code == 'USD' %}selected{% endif %}>
+                                    دولار أمريكي (USD)
+                                </option>
+                            </select>
+                        </div>
+
+                        <div class="mb-4">
+                            <div class="alert alert-warning">
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                <strong>تنبيه:</strong> تغيير العملة سيؤثر على عرض جميع المبالغ في النظام. 
+                                المبالغ المحفوظة في قاعدة البيانات لن تتغير، فقط طريقة العرض.
+                            </div>
+                        </div>
+
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <a href="{% url 'dashboard' %}" class="btn btn-secondary me-md-2">
+                                <i class="fas fa-times me-1"></i>إلغاء
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-1"></i>حفظ التغييرات
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">معاينة العملات</h6>
+                </div>
+                <div class="card-body">
+                    <h6>أمثلة على التنسيق:</h6>
+                    
+                    <div class="mb-3">
+                        <strong>دينار عراقي:</strong>
+                        <div class="text-muted">
+                            {{ 1000|currency_iqd }}<br>
+                            {{ 50000|currency_iqd }}<br>
+                            {{ 250000|currency_iqd }}
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <strong>دولار أمريكي:</strong>
+                        <div class="text-muted">
+                            {{ 100|currency_usd }}<br>
+                            {{ 1500.50|currency_usd }}<br>
+                            {{ 25000|currency_usd }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card shadow mt-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">معلومات إضافية</h6>
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled">
+                        <li class="mb-2">
+                            <i class="fas fa-check text-success me-2"></i>
+                            تغيير فوري في جميع الصفحات
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-check text-success me-2"></i>
+                            يحفظ في إعدادات الشركة
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-check text-success me-2"></i>
+                            يؤثر على التقارير والفواتير
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-info text-info me-2"></i>
+                            البيانات المحفوظة تبقى كما هي
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

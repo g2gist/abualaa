@@ -1,0 +1,190 @@
+{% extends 'base.html' %}
+{% load currency_tags %}
+
+{% block title %}فاتورة {{ invoice.invoice_number }} - محلات أبو علاء{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">
+        <i class="fas fa-file-invoice me-2"></i>
+        فاتورة {{ invoice.invoice_number }}
+    </h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <div class="btn-group me-2">
+            <a href="{% url 'invoice_pdf' invoice.id %}" class="btn btn-danger" target="_blank">
+                <i class="fas fa-file-pdf me-1"></i>تحميل PDF
+            </a>
+            <a href="{% url 'debt_detail' invoice.debt.id %}" class="btn btn-outline-primary">
+                <i class="fas fa-money-bill-wave me-1"></i>عرض الدين
+            </a>
+        </div>
+        <a href="{% url 'invoice_list' %}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-right me-1"></i>العودة للقائمة
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <!-- معلومات الفاتورة -->
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-info-circle me-2"></i>معلومات الفاتورة
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="form-label text-muted">رقم الفاتورة</label>
+                    <p class="mb-0"><strong>{{ invoice.invoice_number }}</strong></p>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label text-muted">تاريخ الإصدار</label>
+                    <p class="mb-0">{{ invoice.created_date|date:"Y-m-d H:i" }}</p>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label text-muted">تاريخ الاستحقاق</label>
+                    <p class="mb-0">
+                        {{ invoice.debt.due_date|date:"Y-m-d" }}
+                        {% if invoice.debt.is_overdue %}
+                            <span class="badge bg-danger ms-1">متأخر</span>
+                        {% elif invoice.debt.is_due_soon %}
+                            <span class="badge bg-warning ms-1">مستحق قريباً</span>
+                        {% endif %}
+                    </p>
+                </div>
+                
+                <div class="mb-0">
+                    <label class="form-label text-muted">حالة الفاتورة</label>
+                    <p class="mb-0">
+                        {% if invoice.debt.status == 'paid' %}
+                            <span class="badge bg-success">مدفوعة</span>
+                        {% elif invoice.debt.status == 'overdue' %}
+                            <span class="badge bg-danger">متأخرة</span>
+                        {% elif invoice.debt.status == 'active' %}
+                            <span class="badge bg-primary">نشطة</span>
+                        {% else %}
+                            <span class="badge bg-secondary">{{ invoice.debt.get_status_display }}</span>
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- معلومات العميل -->
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-user me-2"></i>معلومات العميل
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="form-label text-muted">الاسم</label>
+                    <p class="mb-0">
+                        <a href="{% url 'customer_detail' invoice.debt.customer.id %}" class="text-decoration-none">
+                            <strong>{{ invoice.debt.customer.name }}</strong>
+                        </a>
+                    </p>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label text-muted">رقم الهاتف</label>
+                    <p class="mb-0">{{ invoice.debt.customer.phone }}</p>
+                </div>
+                
+                {% if invoice.debt.customer.email %}
+                <div class="mb-3">
+                    <label class="form-label text-muted">البريد الإلكتروني</label>
+                    <p class="mb-0">{{ invoice.debt.customer.email }}</p>
+                </div>
+                {% endif %}
+                
+                {% if invoice.debt.customer.address %}
+                <div class="mb-0">
+                    <label class="form-label text-muted">العنوان</label>
+                    <p class="mb-0">{{ invoice.debt.customer.address }}</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- تفاصيل الدين -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="card-title mb-0">
+            <i class="fas fa-money-bill-wave me-2"></i>تفاصيل الدين
+        </h5>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-8">
+                <div class="mb-3">
+                    <label class="form-label text-muted">وصف الدين</label>
+                    <p class="mb-0">{{ invoice.debt.description }}</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="text-center">
+                    <h4 class="text-primary">{{ invoice.debt.amount|currency }}</h4>
+                    <small class="text-muted">المبلغ الإجمالي</small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- الملخص المالي -->
+<div class="card">
+    <div class="card-header">
+        <h5 class="card-title mb-0">
+            <i class="fas fa-chart-pie me-2"></i>الملخص المالي
+        </h5>
+    </div>
+    <div class="card-body">
+        <div class="row text-center">
+            <div class="col-md-4">
+                <div class="border-end">
+                    <h4 class="text-primary mb-1">{{ invoice.debt.amount|currency }}</h4>
+                    <small class="text-muted">المبلغ الأصلي</small>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="border-end">
+                    <h4 class="text-success mb-1">{{ invoice.debt.total_paid|currency }}</h4>
+                    <small class="text-muted">المدفوع</small>
+                </div>
+            </div>
+            <div class="col-md-4">
+                {% if invoice.debt.remaining_amount > 0 %}
+                    <h4 class="text-warning mb-1">{{ invoice.debt.remaining_amount|currency }}</h4>
+                    <small class="text-muted">المتبقي</small>
+                {% else %}
+                    <h4 class="text-success mb-1">مسدد بالكامل</h4>
+                    <small class="text-muted">تم السداد</small>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- شريط التقدم -->
+        <div class="mt-4">
+            {% widthratio invoice.debt.total_paid invoice.debt.amount 100 as progress_percent %}
+            <div class="progress">
+                <div class="progress-bar bg-success" role="progressbar" 
+                     style="width: {{ progress_percent }}%" 
+                     aria-valuenow="{{ progress_percent }}" 
+                     aria-valuemin="0" aria-valuemax="100">
+                    {{ progress_percent }}%
+                </div>
+            </div>
+            <small class="text-muted">نسبة السداد</small>
+        </div>
+    </div>
+</div>
+{% endblock %}

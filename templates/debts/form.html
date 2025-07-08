@@ -1,0 +1,159 @@
+{% extends 'base.html' %}
+
+{% block title %}إضافة دين جديد - محلات أبو علاء{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">
+        <i class="fas fa-plus-circle me-2"></i>
+        إضافة دين جديد
+    </h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <a href="{% url 'debt_list' %}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-right me-1"></i>العودة للقائمة
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <div class="mb-3">
+                        <label for="customer" class="form-label">
+                            <i class="fas fa-user me-1"></i>العميل *
+                        </label>
+                        <select class="form-select" id="customer" name="customer" required>
+                            <option value="">اختر العميل</option>
+                            {% for customer in customers %}
+                            <option value="{{ customer.id }}" 
+                                    {% if selected_customer and selected_customer.id == customer.id %}selected{% endif %}>
+                                {{ customer.name }} - {{ customer.phone }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="amount" class="form-label">
+                                <i class="fas fa-money-bill-wave me-1"></i>المبلغ *
+                            </label>
+                            <div class="input-group">
+                                <input type="number" class="form-control" id="amount" name="amount"
+                                       step="0.01" min="0.01" required>
+                                <span class="input-group-text">{% load currency_tags %}{% currency_symbol %}</span>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label for="due_date" class="form-label">
+                                <i class="fas fa-calendar me-1"></i>تاريخ الاستحقاق *
+                            </label>
+                            <input type="date" class="form-control" id="due_date" name="due_date" required>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="description" class="form-label">
+                            <i class="fas fa-file-alt me-1"></i>وصف الدين *
+                        </label>
+                        <textarea class="form-control" id="description" name="description" 
+                                  rows="4" required placeholder="اكتب وصف مفصل للدين..."></textarea>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-1"></i>
+                            إضافة الدين
+                        </button>
+                        
+                        <a href="{% url 'debt_list' %}" class="btn btn-outline-secondary">
+                            <i class="fas fa-times me-1"></i>إلغاء
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="fas fa-info-circle me-1"></i>معلومات مهمة
+                </h6>
+            </div>
+            <div class="card-body">
+                <ul class="list-unstyled mb-0">
+                    <li class="mb-2">
+                        <i class="fas fa-check text-success me-2"></i>
+                        جميع الحقول مطلوبة
+                    </li>
+                    <li class="mb-2">
+                        <i class="fas fa-money-bill-wave text-info me-2"></i>
+                        المبلغ يجب أن يكون أكبر من صفر
+                    </li>
+                    <li class="mb-2">
+                        <i class="fas fa-calendar text-warning me-2"></i>
+                        اختر تاريخ استحقاق مناسب
+                    </li>
+                    <li class="mb-2">
+                        <i class="fas fa-file-invoice text-primary me-2"></i>
+                        سيتم إنشاء فاتورة تلقائياً
+                    </li>
+                    <li>
+                        <i class="fas fa-bell text-secondary me-2"></i>
+                        ستظهر تنبيهات عند الاستحقاق
+                    </li>
+                </ul>
+            </div>
+        </div>
+        
+        {% if selected_customer %}
+        <div class="card mt-3">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="fas fa-user me-1"></i>معلومات العميل المحدد
+                </h6>
+            </div>
+            <div class="card-body">
+                <p><strong>الاسم:</strong> {{ selected_customer.name }}</p>
+                <p><strong>الهاتف:</strong> {{ selected_customer.phone }}</p>
+                {% if selected_customer.email %}
+                <p><strong>البريد:</strong> {{ selected_customer.email }}</p>
+                {% endif %}
+                <hr>
+                <div class="row text-center">
+                    <div class="col-6">
+                        <div class="border-end">
+                            <h6 class="text-primary mb-1">{{ selected_customer.debts.count }}</h6>
+                            <small class="text-muted">عدد الديون</small>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <h6 class="text-warning mb-1">{{ selected_customer.remaining_debt|floatformat:2 }}</h6>
+                        <small class="text-muted">المبلغ المتبقي</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+// تعيين تاريخ الاستحقاق الافتراضي (بعد شهر من اليوم)
+document.addEventListener('DOMContentLoaded', function() {
+    const dueDateInput = document.getElementById('due_date');
+    if (!dueDateInput.value) {
+        const today = new Date();
+        const nextMonth = new Date(today.getFullYear(), today.getMonth() + 1, today.getDate());
+        dueDateInput.value = nextMonth.toISOString().split('T')[0];
+    }
+});
+</script>
+{% endblock %}

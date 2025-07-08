@@ -1,0 +1,40 @@
+# Google Cloud Run configuration
+runtime: custom
+env: flex
+
+# Environment variables
+env_variables:
+  DEBUG: "False"
+  ALLOWED_HOSTS: "*"
+  DATABASE_URL: "postgresql://username:password@host:port/database"
+  SECRET_KEY: "your-secret-key-here"
+
+# Automatic scaling
+automatic_scaling:
+  min_num_instances: 1
+  max_num_instances: 10
+  cool_down_period_sec: 120
+  cpu_utilization:
+    target_utilization: 0.6
+
+# Resources
+resources:
+  cpu: 1
+  memory_gb: 2
+  disk_size_gb: 10
+
+# Health check
+liveness_check:
+  path: "/admin/"
+  check_interval_sec: 30
+  timeout_sec: 4
+  failure_threshold: 2
+  success_threshold: 2
+
+readiness_check:
+  path: "/admin/"
+  check_interval_sec: 5
+  timeout_sec: 4
+  failure_threshold: 2
+  success_threshold: 2
+  app_start_timeout_sec: 300

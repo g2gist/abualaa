@@ -1,0 +1,157 @@
+{% extends 'base.html' %}
+
+{% block title %}رفع العملاء من Excel - محلات أبو علاء{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">
+        <i class="fas fa-file-excel me-2"></i>
+        رفع العملاء من ملف Excel
+    </h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <a href="{% url 'customer_list' %}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-right me-1"></i>العودة للقائمة
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-upload me-2"></i>رفع ملف Excel
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    
+                    <div class="mb-4">
+                        <label for="excel_file" class="form-label">
+                            <i class="fas fa-file-excel me-1"></i>اختر ملف Excel *
+                        </label>
+                        <input type="file" class="form-control" id="excel_file" name="excel_file" 
+                               accept=".xlsx,.xls" required>
+                        <div class="form-text">
+                            يجب أن يكون الملف بصيغة .xlsx أو .xls
+                        </div>
+                    </div>
+                    
+                    <div class="alert alert-info" role="alert">
+                        <h6 class="alert-heading">
+                            <i class="fas fa-info-circle me-2"></i>تنسيق الملف المطلوب
+                        </h6>
+                        <p class="mb-2">يجب أن يحتوي ملف Excel على الأعمدة التالية:</p>
+                        <ul class="mb-0">
+                            <li><strong>الاسم</strong> (مطلوب)</li>
+                            <li><strong>رقم الهاتف</strong> (مطلوب)</li>
+                            <li><strong>البريد الإلكتروني</strong> (اختياري)</li>
+                            <li><strong>العنوان</strong> (اختياري)</li>
+                            <li><strong>رقم الصفحة</strong> (اختياري)</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between">
+                        <button type="submit" class="btn btn-success">
+                            <i class="fas fa-upload me-1"></i>
+                            رفع الملف
+                        </button>
+                        
+                        <a href="{% url 'customer_list' %}" class="btn btn-outline-secondary">
+                            <i class="fas fa-times me-1"></i>إلغاء
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <!-- نموذج ملف Excel -->
+        <div class="card">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="fas fa-download me-1"></i>تحميل نموذج Excel
+                </h6>
+            </div>
+            <div class="card-body">
+                <p class="text-muted">يمكنك تحميل نموذج ملف Excel لمعرفة التنسيق المطلوب:</p>
+                <a href="{% url 'download_excel_template' %}" class="btn btn-outline-primary btn-sm">
+                    <i class="fas fa-download me-1"></i>تحميل النموذج
+                </a>
+            </div>
+        </div>
+        
+        <!-- تعليمات -->
+        <div class="card mt-3">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="fas fa-lightbulb me-1"></i>تعليمات مهمة
+                </h6>
+            </div>
+            <div class="card-body">
+                <ul class="list-unstyled mb-0">
+                    <li class="mb-2">
+                        <i class="fas fa-check text-success me-2"></i>
+                        تأكد من صحة أرقام الهواتف
+                    </li>
+                    <li class="mb-2">
+                        <i class="fas fa-exclamation-triangle text-warning me-2"></i>
+                        لن يتم إضافة أرقام هواتف مكررة
+                    </li>
+                    <li class="mb-2">
+                        <i class="fas fa-info-circle text-info me-2"></i>
+                        سيتم تنسيق أرقام الهواتف تلقائياً
+                    </li>
+                    <li>
+                        <i class="fas fa-shield-alt text-primary me-2"></i>
+                        هذه العملية متاحة للمدراء فقط
+                    </li>
+                </ul>
+            </div>
+        </div>
+        
+        <!-- إحصائيات -->
+        <div class="card mt-3">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="fas fa-chart-bar me-1"></i>إحصائيات العملاء
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="text-center">
+                    <h4 class="text-primary mb-1">{{ total_customers }}</h4>
+                    <small class="text-muted">إجمالي العملاء الحاليين</small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function downloadTemplate() {
+    // إنشاء ملف Excel نموذجي
+    const data = [
+        ['الاسم', 'رقم الهاتف', 'البريد الإلكتروني', 'العنوان', 'رقم الصفحة'],
+        ['أحمد محمد', '07901234567', 'ahmed@example.com', 'بغداد، الكرادة', 'A-001'],
+        ['فاطمة علي', '07801234567', 'fatima@example.com', 'البصرة، الجمعيات', 'A-002'],
+        ['محمد حسن', '07701234567', '', 'أربيل، الشرق', 'A-003']
+    ];
+    
+    let csvContent = "data:text/csv;charset=utf-8,\uFEFF";
+    data.forEach(function(rowArray) {
+        let row = rowArray.join(",");
+        csvContent += row + "\r\n";
+    });
+    
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", "نموذج_العملاء.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+</script>
+{% endblock %}

@@ -1,0 +1,236 @@
+{% extends 'base.html' %}
+
+{% block title %}النسخ الاحتياطي{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- عنوان الصفحة -->
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">
+            <i class="fas fa-cloud-upload-alt me-2"></i>النسخ الاحتياطي
+        </h1>
+        <div class="btn-group" role="group">
+            <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#createBackupModal">
+                <i class="fas fa-plus me-1"></i>إنشاء نسخة احتياطية
+            </button>
+            <a href="{% url 'download_backup' %}" class="btn btn-primary">
+                <i class="fas fa-download me-1"></i>تحميل نسخة محلية
+            </a>
+            <a href="{% url 'backup_settings' %}" class="btn btn-outline-secondary">
+                <i class="fas fa-cog me-1"></i>الإعدادات
+            </a>
+        </div>
+    </div>
+
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                {{ message|linebreaks }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <!-- معلومات الحالة -->
+    <div class="row mb-4">
+        <div class="col-lg-6">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">حالة Google Drive</h6>
+                </div>
+                <div class="card-body">
+                    {% if drive_configured %}
+                        <div class="alert alert-success">
+                            <i class="fas fa-check-circle me-2"></i>
+                            <strong>متصل:</strong> Google Drive مُعد بشكل صحيح
+                        </div>
+                        <p class="text-muted mb-0">
+                            يمكنك إنشاء نسخ احتياطية ورفعها تلقائياً إلى Google Drive
+                        </p>
+                    {% else %}
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            <strong>غير مُعد:</strong> Google Drive غير مُعد
+                        </div>
+                        <p class="text-muted mb-3">
+                            لاستخدام Google Drive، يجب إعداد ملف المصادقة ومعرف المجلد
+                        </p>
+                        <button class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#setupModal">
+                            <i class="fas fa-cog me-1"></i>إعداد Google Drive
+                        </button>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">معلومات النسخ الاحتياطي</h6>
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled mb-0">
+                        <li class="mb-2">
+                            <i class="fas fa-database text-info me-2"></i>
+                            <strong>البيانات المشمولة:</strong> العملاء، الديون، الدفعات، الفواتير، الإعدادات
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-file-excel text-success me-2"></i>
+                            <strong>تنسيق الملف:</strong> Excel (.xlsx)
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-clock text-warning me-2"></i>
+                            <strong>التوقيت:</strong> يدوي أو تلقائي
+                        </li>
+                        <li class="mb-0">
+                            <i class="fas fa-shield-alt text-primary me-2"></i>
+                            <strong>الأمان:</strong> مشفر ومحمي
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- قائمة النسخ الاحتياطية -->
+    <div class="card shadow">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">النسخ الاحتياطية المحفوظة</h6>
+        </div>
+        <div class="card-body">
+            {% if backups %}
+                <div class="table-responsive">
+                    <table class="table table-bordered">
+                        <thead>
+                            <tr>
+                                <th>اسم الملف</th>
+                                <th>تاريخ الإنشاء</th>
+                                <th>حجم الملف</th>
+                                <th>الإجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for backup in backups %}
+                            <tr>
+                                <td>
+                                    <i class="fas fa-file-excel text-success me-2"></i>
+                                    {{ backup.name }}
+                                </td>
+                                <td>{{ backup.createdTime|date:"Y-m-d H:i" }}</td>
+                                <td>
+                                    {% if backup.size %}
+                                        {{ backup.size|filesizeformat }}
+                                    {% else %}
+                                        غير محدد
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if backup.webViewLink %}
+                                        <a href="{{ backup.webViewLink }}" target="_blank" class="btn btn-outline-primary btn-sm">
+                                            <i class="fas fa-external-link-alt me-1"></i>فتح
+                                        </a>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="text-center py-4">
+                    <i class="fas fa-folder-open fa-3x text-muted mb-3"></i>
+                    <h5 class="text-muted">لا توجد نسخ احتياطية</h5>
+                    <p class="text-muted">ابدأ بإنشاء أول نسخة احتياطية</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Modal إنشاء نسخة احتياطية -->
+<div class="modal fade" id="createBackupModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">إنشاء نسخة احتياطية</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" action="{% url 'create_backup' %}">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">نوع النسخة الاحتياطية</label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="backup_type" id="local" value="local" checked>
+                            <label class="form-check-label" for="local">
+                                <i class="fas fa-hdd me-2"></i>محلي (تحميل مباشر)
+                            </label>
+                        </div>
+                        {% if drive_configured %}
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="backup_type" id="google_drive" value="google_drive">
+                            <label class="form-check-label" for="google_drive">
+                                <i class="fab fa-google-drive me-2"></i>Google Drive
+                            </label>
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        ستشمل النسخة الاحتياطية جميع البيانات الحالية في النظام
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-cloud-upload-alt me-1"></i>إنشاء النسخة
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal إعداد Google Drive -->
+<div class="modal fade" id="setupModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">إعداد Google Drive</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <h6>خطوات الإعداد:</h6>
+                <ol>
+                    <li class="mb-2">
+                        <strong>إنشاء مشروع في Google Cloud Console:</strong>
+                        <br>اذهب إلى <a href="https://console.cloud.google.com/" target="_blank">Google Cloud Console</a>
+                    </li>
+                    <li class="mb-2">
+                        <strong>تفعيل Google Drive API:</strong>
+                        <br>ابحث عن "Google Drive API" وفعله
+                    </li>
+                    <li class="mb-2">
+                        <strong>إنشاء Service Account:</strong>
+                        <br>اذهب إلى "IAM & Admin" > "Service Accounts"
+                    </li>
+                    <li class="mb-2">
+                        <strong>تحميل ملف JSON:</strong>
+                        <br>احفظ الملف في مجلد المشروع
+                    </li>
+                    <li class="mb-2">
+                        <strong>إعداد المتغيرات في settings.py:</strong>
+                        <pre class="bg-light p-2 rounded">
+GOOGLE_DRIVE_CREDENTIALS = 'path/to/credentials.json'
+GOOGLE_DRIVE_FOLDER_ID = 'your_folder_id'</pre>
+                    </li>
+                </ol>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إغلاق</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

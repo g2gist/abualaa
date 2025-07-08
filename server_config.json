@@ -1,0 +1,36 @@
+{
+    "server": {
+        "host": "0.0.0.0",
+        "port": 8000,
+        "auto_restart": true,
+        "max_restarts": 10,
+        "restart_delay": 5
+    },
+    "logging": {
+        "level": "INFO",
+        "file": "logs/server.log",
+        "max_size": "10MB",
+        "backup_count": 5
+    },
+    "monitoring": {
+        "enabled": true,
+        "check_interval": 30,
+        "health_check_url": "http://localhost:8000/",
+        "timeout": 10
+    },
+    "maintenance": {
+        "auto_backup": true,
+        "backup_interval": 24,
+        "cleanup_logs": true,
+        "log_retention_days": 30
+    },
+    "notifications": {
+        "enabled": false,
+        "email": "",
+        "webhook_url": ""
+    },
+    "security": {
+        "allowed_hosts": ["localhost", "127.0.0.1", "0.0.0.0"],
+        "debug": false
+    }
+}

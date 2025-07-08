@@ -1,0 +1,199 @@
+{% extends 'base.html' %}
+
+{% block title %}إعدادات الشعار{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- عنوان الصفحة -->
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">
+            <i class="fas fa-image me-2"></i>إعدادات الشعار والعلامة المائية
+        </h1>
+    </div>
+
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">رفع شعار الشركة</h6>
+                </div>
+                <div class="card-body">
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        
+                        <div class="mb-4">
+                            <label for="logo" class="form-label">اختر ملف الشعار</label>
+                            <input type="file" class="form-control" id="logo" name="logo" 
+                                   accept="image/*" required>
+                            <div class="form-text">
+                                الأنواع المدعومة: JPG, PNG, GIF | الحد الأقصى: 5 ميجابايت
+                            </div>
+                        </div>
+
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <strong>نصائح للحصول على أفضل النتائج:</strong>
+                            <ul class="mb-0 mt-2">
+                                <li>استخدم صورة بخلفية شفافة (PNG) للحصول على أفضل مظهر</li>
+                                <li>الحجم المثالي: 200x200 بكسل أو أكبر</li>
+                                <li>تأكد من وضوح الشعار وقابليته للقراءة</li>
+                                <li>سيتم استخدام الشعار كعلامة مائية في جميع الصفحات</li>
+                            </ul>
+                        </div>
+
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-upload me-1"></i>رفع الشعار
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- معاينة الشعار الحالي -->
+            {% if company_settings.logo %}
+            <div class="card shadow mt-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">الشعار الحالي</h6>
+                </div>
+                <div class="card-body text-center">
+                    <img src="{{ company_settings.logo.url }}" alt="شعار الشركة" 
+                         class="img-fluid mb-3" style="max-height: 200px;">
+                    
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-center">
+                        <form method="post" class="d-inline">
+                            {% csrf_token %}
+                            <button type="submit" name="remove_logo" class="btn btn-outline-danger"
+                                    onclick="return confirm('هل أنت متأكد من حذف الشعار؟')">
+                                <i class="fas fa-trash me-1"></i>حذف الشعار
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">معاينة العلامة المائية</h6>
+                </div>
+                <div class="card-body">
+                    <div class="watermark-preview position-relative bg-light p-4 rounded" style="min-height: 300px;">
+                        {% if company_settings.logo %}
+                            <div class="watermark-logo">
+                                <img src="{{ company_settings.logo.url }}" alt="علامة مائية" 
+                                     style="opacity: 0.1; position: absolute; top: 50%; left: 50%; 
+                                            transform: translate(-50%, -50%); max-width: 150px; z-index: 1;">
+                            </div>
+                        {% endif %}
+                        
+                        <div class="content-preview position-relative" style="z-index: 2;">
+                            <h5>عينة من المحتوى</h5>
+                            <p>هذا مثال على كيفية ظهور العلامة المائية خلف المحتوى في الصفحات.</p>
+                            <div class="table-responsive">
+                                <table class="table table-sm">
+                                    <thead>
+                                        <tr>
+                                            <th>العميل</th>
+                                            <th>المبلغ</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>أحمد محمد</td>
+                                            <td>$1,000</td>
+                                        </tr>
+                                        <tr>
+                                            <td>فاطمة علي</td>
+                                            <td>$750</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    {% if not company_settings.logo %}
+                        <div class="text-center text-muted mt-3">
+                            <i class="fas fa-image fa-2x mb-2"></i>
+                            <p>لا يوجد شعار حالياً</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="card shadow mt-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">حقوق البرمجة</h6>
+                </div>
+                <div class="card-body text-center">
+                    <div class="developer-info">
+                        <i class="fas fa-code fa-2x text-primary mb-3"></i>
+                        <h6 class="font-weight-bold">تم تطوير هذا النظام بواسطة</h6>
+                        <h5 class="text-primary mb-2">المبرمج خالد شجاع</h5>
+                        <p class="text-muted small mb-3">
+                            نظام إدارة العملاء والديون<br>
+                            جميع الحقوق محفوظة © 2025
+                        </p>
+                        <div class="social-links">
+                            <a href="#" class="btn btn-outline-primary btn-sm me-2">
+                                <i class="fab fa-linkedin"></i>
+                            </a>
+                            <a href="#" class="btn btn-outline-primary btn-sm me-2">
+                                <i class="fab fa-github"></i>
+                            </a>
+                            <a href="#" class="btn btn-outline-primary btn-sm">
+                                <i class="fas fa-envelope"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.watermark-preview {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border: 2px dashed #dee2e6;
+}
+
+.developer-info {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background-clip: text;
+    -webkit-background-clip: text;
+    color: transparent;
+    padding: 1rem;
+    border-radius: 10px;
+    background-color: #f8f9fa;
+}
+
+.developer-info h5, .developer-info h6 {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background-clip: text;
+    -webkit-background-clip: text;
+    color: transparent;
+}
+
+.social-links .btn {
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+</style>
+{% endblock %}

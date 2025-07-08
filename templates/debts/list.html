@@ -1,0 +1,194 @@
+{% extends 'base.html' %}
+{% load currency_tags %}
+
+{% block title %}قائمة الديون - محلات أبو علاء{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">
+        <i class="fas fa-money-bill-wave me-2"></i>
+        قائمة الديون
+    </h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <a href="{% url 'debt_create' %}" class="btn btn-primary">
+            <i class="fas fa-plus me-1"></i>إضافة دين جديد
+        </a>
+    </div>
+</div>
+
+<!-- الفلاتر والبحث -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <div class="col-md-3">
+                <label for="search" class="form-label">البحث</label>
+                <input type="text" class="form-control" id="search" name="search" 
+                       placeholder="اسم العميل أو الوصف..." value="{{ search_query }}">
+            </div>
+            
+            <div class="col-md-3">
+                <label for="customer" class="form-label">العميل</label>
+                <select class="form-select" id="customer" name="customer">
+                    <option value="">جميع العملاء</option>
+                    {% for customer in customers %}
+                    <option value="{{ customer.id }}" {% if customer_filter == customer.id|stringformat:"s" %}selected{% endif %}>
+                        {{ customer.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="col-md-3">
+                <label for="status" class="form-label">الحالة</label>
+                <select class="form-select" id="status" name="status">
+                    <option value="">جميع الحالات</option>
+                    {% for value, label in status_choices %}
+                    <option value="{{ value }}" {% if status_filter == value %}selected{% endif %}>
+                        {{ label }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="col-md-3 d-flex align-items-end">
+                <button type="submit" class="btn btn-outline-primary me-2">
+                    <i class="fas fa-search me-1"></i>بحث
+                </button>
+                <a href="{% url 'debt_list' %}" class="btn btn-outline-secondary">
+                    <i class="fas fa-times me-1"></i>مسح
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- قائمة الديون -->
+<div class="card">
+    <div class="card-body">
+        {% if debts %}
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>العميل</th>
+                        <th>المبلغ</th>
+                        <th>الوصف</th>
+                        <th>تاريخ الاستحقاق</th>
+                        <th>الحالة</th>
+                        <th>المدفوع</th>
+                        <th>المتبقي</th>
+                        <th>الإجراءات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for debt in debts %}
+                    <tr>
+                        <td>
+                            <a href="{% url 'customer_detail' debt.customer.id %}" class="text-decoration-none">
+                                <strong>{{ debt.customer.name }}</strong>
+                            </a>
+                            <br>
+                            <small class="text-muted">{{ debt.customer.phone }}</small>
+                        </td>
+                        <td>
+                            <strong>{{ debt.amount|currency }}</strong>
+                        </td>
+                        <td>{{ debt.description|truncatechars:40 }}</td>
+                        <td>
+                            {{ debt.due_date|date:"Y-m-d" }}
+                            {% if debt.is_overdue %}
+                                <br><span class="badge bg-danger">متأخر</span>
+                            {% elif debt.is_due_soon %}
+                                <br><span class="badge bg-warning">مستحق قريباً</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if debt.status == 'paid' %}
+                                <span class="badge bg-success">مدفوع</span>
+                            {% elif debt.status == 'overdue' %}
+                                <span class="badge bg-danger">متأخر</span>
+                            {% elif debt.status == 'active' %}
+                                <span class="badge bg-primary">نشط</span>
+                            {% else %}
+                                <span class="badge bg-secondary">{{ debt.get_status_display }}</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="text-success">{{ debt.total_paid|currency }}</span>
+                        </td>
+                        <td>
+                            {% if debt.remaining_amount > 0 %}
+                                <span class="text-warning">{{ debt.remaining_amount|currency }}</span>
+                            {% else %}
+                                <span class="text-success">مسدد</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="btn-group btn-group-sm">
+                                <a href="{% url 'debt_detail' debt.id %}" 
+                                   class="btn btn-outline-primary" title="عرض التفاصيل">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                                {% if debt.remaining_amount > 0 %}
+                                <a href="{% url 'payment_create' debt.id %}" 
+                                   class="btn btn-outline-success" title="تسجيل دفعة">
+                                    <i class="fas fa-credit-card"></i>
+                                </a>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- ترقيم الصفحات -->
+        {% if debts.has_other_pages %}
+        <nav aria-label="ترقيم الصفحات">
+            <ul class="pagination justify-content-center">
+                {% if debts.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page=1{% if search_query %}&search={{ search_query }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if customer_filter %}&customer={{ customer_filter }}{% endif %}">الأولى</a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ debts.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if customer_filter %}&customer={{ customer_filter }}{% endif %}">السابقة</a>
+                    </li>
+                {% endif %}
+
+                <li class="page-item active">
+                    <span class="page-link">
+                        صفحة {{ debts.number }} من {{ debts.paginator.num_pages }}
+                    </span>
+                </li>
+
+                {% if debts.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ debts.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if customer_filter %}&customer={{ customer_filter }}{% endif %}">التالية</a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ debts.paginator.num_pages }}{% if search_query %}&search={{ search_query }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if customer_filter %}&customer={{ customer_filter }}{% endif %}">الأخيرة</a>
+                    </li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+
+        {% else %}
+        <div class="text-center py-5">
+            <i class="fas fa-money-bill-wave fa-3x text-muted mb-3"></i>
+            <h5 class="text-muted">لا توجد ديون</h5>
+            {% if search_query or status_filter or customer_filter %}
+                <p class="text-muted">لم يتم العثور على نتائج للفلاتر المحددة</p>
+                <a href="{% url 'debt_list' %}" class="btn btn-outline-secondary">عرض جميع الديون</a>
+            {% else %}
+                <p class="text-muted">ابدأ بإضافة دين جديد</p>
+                <a href="{% url 'debt_create' %}" class="btn btn-primary">
+                    <i class="fas fa-plus me-1"></i>إضافة دين جديد
+                </a>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
