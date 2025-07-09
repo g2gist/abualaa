@@ -939,15 +939,20 @@ def currency_settings(request):
 @user_passes_test(is_manager)
 def backup_dashboard(request):
     """لوحة النسخ الاحتياطي"""
-    from .backup_service import GoogleDriveService
-
-    # الحصول على قائمة النسخ الاحتياطية من Google Drive
-    drive_service = GoogleDriveService()
-    backups = drive_service.list_backups()
+    try:
+        from .backup_service import GoogleDriveService
+        # الحصول على قائمة النسخ الاحتياطية من Google Drive
+        drive_service = GoogleDriveService()
+        backups = drive_service.list_backups()
+        drive_configured = bool(drive_service.credentials_file and drive_service.folder_id)
+    except Exception as e:
+        # إذا فشل Google Drive، استخدم النسخ المحلية فقط
+        backups = []
+        drive_configured = False
 
     context = {
         'backups': backups,
-        'drive_configured': bool(drive_service.credentials_file and drive_service.folder_id),
+        'drive_configured': drive_configured,
     }
 
     return render(request, 'backup/dashboard.html', context)
@@ -957,7 +962,7 @@ def backup_dashboard(request):
 @user_passes_test(is_manager)
 def create_backup(request):
     """إنشاء نسخة احتياطية"""
-    from .backup_service import BackupService, GoogleDriveService
+    from .backup_service import BackupService
     from datetime import datetime
 
     if request.method == 'POST':
@@ -967,33 +972,33 @@ def create_backup(request):
             backup_service = BackupService()
 
             if backup_type == 'google_drive':
-                # رفع إلى Google Drive
-                drive_service = GoogleDriveService()
+                try:
+                    from .backup_service import GoogleDriveService
+                    # رفع إلى Google Drive
+                    drive_service = GoogleDriveService()
 
-                # إنشاء النسخة الاحتياطية في الذاكرة
-                file_stream = backup_service.create_backup_stream()
-                timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-                filename = f'backup_abu_alaa_{timestamp}.xlsx'
+                    # إنشاء النسخة الاحتياطية في الذاكرة
+                    file_stream = backup_service.create_backup_stream()
+                    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+                    filename = f'backup_abu_alaa_{timestamp}.xlsx'
 
-                # رفع إلى Google Drive
-                success, result = drive_service.upload_backup(file_stream, filename)
+                    # رفع إلى Google Drive
+                    success, result = drive_service.upload_backup(file_stream, filename)
 
-                if success:
-                    messages.success(
-                        request,
-                        f'تم إنشاء النسخة الاحتياطية ورفعها إلى Google Drive بنجاح!\n'
-                        f'اسم الملف: {result["filename"]}'
-                    )
-                else:
-                    messages.error(request, f'فشل في رفع النسخة الاحتياطية: {result}')
+                    if success:
+                        messages.success(
+                            request,
+                            f'تم إنشاء النسخة الاحتياطية ورفعها إلى Google Drive بنجاح!\n'
+                            f'اسم الملف: {result["filename"]}'
+                        )
+                    else:
+                        messages.error(request, f'فشل في رفع النسخة الاحتياطية: {result}')
+                except Exception as e:
+                    messages.error(request, f'Google Drive غير متاح: {e}')
 
             else:
-                # حفظ محلي
-                filepath, filename = backup_service.create_excel_backup()
-                messages.success(
-                    request,
-                    f'تم إنشاء النسخة الاحتياطية بنجاح!\nالملف: {filename}'
-                )
+                # حفظ محلي - تحميل مباشر
+                return redirect('download_backup')
 
         except Exception as e:
             messages.error(request, f'خطأ في إنشاء النسخة الاحتياطية: {e}')

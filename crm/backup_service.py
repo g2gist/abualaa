@@ -15,8 +15,16 @@ class BackupService:
     
     def __init__(self):
         self.backup_folder = getattr(settings, 'BACKUP_FOLDER', 'backups')
-        if not os.path.exists(self.backup_folder):
-            os.makedirs(self.backup_folder)
+        # على Render، استخدم مجلد مؤقت
+        if 'RENDER' in os.environ:
+            self.backup_folder = '/tmp/backups'
+
+        try:
+            if not os.path.exists(self.backup_folder):
+                os.makedirs(self.backup_folder)
+        except Exception:
+            # إذا فشل إنشاء المجلد، استخدم /tmp
+            self.backup_folder = '/tmp'
     
     def create_backup_data(self):
         """إنشاء بيانات النسخة الاحتياطية"""
