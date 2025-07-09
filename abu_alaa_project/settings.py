@@ -185,6 +185,14 @@ if 'RENDER' in os.environ:
     # تعطيل CSRF للاختبار
     CSRF_COOKIE_SECURE = False
     CSRF_USE_SESSIONS = False
+
+    # استخدام SQLite للبداية
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': '/opt/render/project/src/db.sqlite3',
+        }
+    }
     USE_X_FORWARDED_PORT = True
 
 # Media files
