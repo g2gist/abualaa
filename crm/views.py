@@ -620,14 +620,22 @@ def customer_import_excel(request):
             return render(request, 'customers/import_excel.html')
 
         try:
-            import pandas as pd
+            # استخدام openpyxl بدلاً من pandas
+            from openpyxl import load_workbook
 
             # قراءة ملف Excel
-            df = pd.read_excel(excel_file)
+            workbook = load_workbook(excel_file)
+            sheet = workbook.active
+
+            # قراءة العناوين من الصف الأول
+            headers = []
+            for cell in sheet[1]:
+                if cell.value:
+                    headers.append(str(cell.value).strip())
 
             # التحقق من وجود الأعمدة المطلوبة
             required_columns = ['الاسم', 'رقم الهاتف']
-            missing_columns = [col for col in required_columns if col not in df.columns]
+            missing_columns = [col for col in required_columns if col not in headers]
 
             if missing_columns:
                 messages.error(request, f'الأعمدة المطلوبة مفقودة: {", ".join(missing_columns)}')
@@ -637,33 +645,41 @@ def customer_import_excel(request):
             error_count = 0
             errors = []
 
-            for index, row in df.iterrows():
+            # قراءة البيانات من الصف الثاني فما فوق
+            for row_num, row in enumerate(sheet.iter_rows(min_row=2, values_only=True), start=2):
                 try:
-                    name = str(row['الاسم']).strip()
-                    phone = str(row['رقم الهاتف']).strip()
+                    # إنشاء قاموس للبيانات
+                    row_data = {}
+                    for i, value in enumerate(row):
+                        if i < len(headers):
+                            row_data[headers[i]] = value
+
+                    name = str(row_data.get('الاسم', '')).strip() if row_data.get('الاسم') else ''
+                    phone = str(row_data.get('رقم الهاتف', '')).strip() if row_data.get('رقم الهاتف') else ''
 
                     # تنظيف رقم الهاتف
-                    phone = phone.replace(' ', '').replace('-', '').replace('(', '').replace(')', '')
-                    if not phone.startswith('+'):
-                        if phone.startswith('0'):
-                            phone = '+964' + phone[1:]
-                        elif len(phone) == 10:
-                            phone = '+964' + phone
+                    if phone:
+                        phone = phone.replace(' ', '').replace('-', '').replace('(', '').replace(')', '')
+                        if not phone.startswith('+'):
+                            if phone.startswith('0'):
+                                phone = '+964' + phone[1:]
+                            elif len(phone) == 10:
+                                phone = '+964' + phone
 
                     # التحقق من البيانات
-                    if not name or name == 'nan':
-                        errors.append(f'الصف {index + 2}: الاسم مطلوب')
+                    if not name or name == 'None':
+                        errors.append(f'الصف {row_num}: الاسم مطلوب')
                         error_count += 1
                         continue
 
-                    if not phone or phone == 'nan':
-                        errors.append(f'الصف {index + 2}: رقم الهاتف مطلوب')
+                    if not phone or phone == 'None':
+                        errors.append(f'الصف {row_num}: رقم الهاتف مطلوب')
                         error_count += 1
                         continue
 
                     # التحقق من عدم تكرار رقم الهاتف
                     if Customer.objects.filter(phone=phone).exists():
-                        errors.append(f'الصف {index + 2}: رقم الهاتف {phone} موجود مسبقاً')
+                        errors.append(f'الصف {row_num}: رقم الهاتف {phone} موجود مسبقاً')
                         error_count += 1
                         continue
 
@@ -674,20 +690,26 @@ def customer_import_excel(request):
                     }
 
                     # إضافة البيانات الاختيارية
-                    if 'البريد الإلكتروني' in df.columns and pd.notna(row['البريد الإلكتروني']):
-                        customer_data['email'] = str(row['البريد الإلكتروني']).strip()
+                    if 'البريد الإلكتروني' in headers and row_data.get('البريد الإلكتروني'):
+                        email = str(row_data['البريد الإلكتروني']).strip()
+                        if email and email != 'None':
+                            customer_data['email'] = email
 
-                    if 'العنوان' in df.columns and pd.notna(row['العنوان']):
-                        customer_data['address'] = str(row['العنوان']).strip()
+                    if 'العنوان' in headers and row_data.get('العنوان'):
+                        address = str(row_data['العنوان']).strip()
+                        if address and address != 'None':
+                            customer_data['address'] = address
 
-                    if 'رقم الصفحة' in df.columns and pd.notna(row['رقم الصفحة']):
-                        customer_data['page_number'] = str(row['رقم الصفحة']).strip()
+                    if 'رقم الصفحة' in headers and row_data.get('رقم الصفحة'):
+                        page_number = str(row_data['رقم الصفحة']).strip()
+                        if page_number and page_number != 'None':
+                            customer_data['page_number'] = page_number
 
                     Customer.objects.create(**customer_data)
                     success_count += 1
 
                 except Exception as e:
-                    errors.append(f'الصف {index + 2}: خطأ في البيانات - {str(e)}')
+                    errors.append(f'الصف {row_num}: خطأ في البيانات - {str(e)}')
                     error_count += 1
 
             # عرض النتائج
@@ -719,25 +741,33 @@ def customer_import_excel(request):
 def download_excel_template(request):
     """تحميل نموذج Excel للعملاء"""
     from django.http import HttpResponse
-    import pandas as pd
+    from openpyxl import Workbook
     from io import BytesIO
 
-    # إنشاء DataFrame نموذجي
-    data = {
-        'الاسم': ['أحمد محمد', 'فاطمة علي', 'محمد حسن'],
-        'رقم الهاتف': ['07901234567', '07801234567', '07701234567'],
-        'البريد الإلكتروني': ['ahmed@example.com', 'fatima@example.com', ''],
-        'العنوان': ['بغداد، الكرادة', 'البصرة، الجمعيات', 'أربيل، الشرق'],
-        'رقم الصفحة': ['A-001', 'A-002', 'A-003']
-    }
+    # إنشاء workbook جديد
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "العملاء"
 
-    df = pd.DataFrame(data)
+    # إضافة العناوين
+    headers = ['الاسم', 'رقم الهاتف', 'البريد الإلكتروني', 'العنوان', 'رقم الصفحة']
+    for col, header in enumerate(headers, 1):
+        ws.cell(row=1, column=col, value=header)
 
-    # إنشاء ملف Excel في الذاكرة
+    # إضافة بيانات نموذجية
+    sample_data = [
+        ['أحمد محمد', '07901234567', 'ahmed@example.com', 'بغداد، الكرادة', 'A-001'],
+        ['فاطمة علي', '07801234567', 'fatima@example.com', 'البصرة، الجمعيات', 'A-002'],
+        ['محمد حسن', '07701234567', '', 'أربيل، الشرق', 'A-003']
+    ]
+
+    for row, data in enumerate(sample_data, 2):
+        for col, value in enumerate(data, 1):
+            ws.cell(row=row, column=col, value=value)
+
+    # حفظ في الذاكرة
     output = BytesIO()
-    with pd.ExcelWriter(output, engine='openpyxl') as writer:
-        df.to_excel(writer, sheet_name='العملاء', index=False)
-
+    wb.save(output)
     output.seek(0)
 
     # إرجاع الملف

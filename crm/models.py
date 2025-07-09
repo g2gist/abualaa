@@ -295,6 +295,9 @@ class CompanySettings(models.Model):
 
     def save(self, *args, **kwargs):
         """التأكد من وجود إعداد واحد فقط"""
+        # السماح بالتحديث للإعداد الموجود
         if not self.pk and CompanySettings.objects.exists():
-            raise ValueError('يمكن إنشاء إعداد واحد فقط للشركة')
+            # تحديث الإعداد الموجود بدلاً من إنشاء جديد
+            existing = CompanySettings.objects.first()
+            self.pk = existing.pk
         super().save(*args, **kwargs)

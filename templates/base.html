@@ -188,8 +188,12 @@
     <nav class="navbar navbar-expand-lg navbar-dark">
         <div class="container-fluid">
             <a class="navbar-brand" href="{% url 'dashboard' %}">
-                <i class="fas fa-store me-2"></i>
-                محلات أبو علاء
+                {% if company_settings and company_settings.logo %}
+                    <img src="{{ company_settings.logo.url }}" alt="شعار الشركة" class="logo">
+                {% else %}
+                    <i class="fas fa-store me-2"></i>
+                {% endif %}
+                {{ company_settings.company_name|default:"محلات أبو علاء" }}
             </a>
             
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
