@@ -1018,7 +1018,8 @@ def download_backup(request):
                 'page_number': customer.page_number or '',
                 'total_debt': str(customer.total_debt),
                 'remaining_debt': str(customer.remaining_debt),
-                'created_at': customer.created_at.isoformat(),
+                'created_at': customer.created_at.isoformat() if hasattr(customer, 'created_at') else '',
+                'updated_at': customer.updated_at.isoformat() if hasattr(customer, 'updated_at') else '',
             })
 
         # بيانات الديون
@@ -1031,7 +1032,8 @@ def download_backup(request):
                 'remaining_amount': str(debt.remaining_amount),
                 'description': debt.description or '',
                 'status': debt.status,
-                'created_at': debt.created_at.isoformat(),
+                'created_date': debt.created_date.isoformat(),
+                'due_date': debt.due_date.isoformat(),
             })
 
         # بيانات المدفوعات
@@ -1042,6 +1044,7 @@ def download_backup(request):
                 'customer_name': payment.debt.customer.name,
                 'amount': str(payment.amount),
                 'payment_date': payment.payment_date.isoformat(),
+                'payment_method': payment.payment_method,
                 'notes': payment.notes or '',
             })
 
@@ -1049,12 +1052,12 @@ def download_backup(request):
         for invoice in Invoice.objects.all():
             backup_data['invoices'].append({
                 'id': invoice.id,
-                'customer_id': invoice.customer.id,
-                'customer_name': invoice.customer.name,
+                'debt_id': invoice.debt.id,
+                'customer_name': invoice.debt.customer.name,
                 'invoice_number': invoice.invoice_number,
-                'total_amount': str(invoice.total_amount),
+                'total_amount': str(invoice.debt.amount),
                 'status': invoice.status,
-                'created_at': invoice.created_at.isoformat(),
+                'created_date': invoice.created_date.isoformat(),
             })
 
         # إعدادات الشركة
