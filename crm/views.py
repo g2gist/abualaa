@@ -939,89 +939,152 @@ def currency_settings(request):
 @user_passes_test(is_manager)
 def backup_dashboard(request):
     """لوحة النسخ الاحتياطي"""
-    # تبسيط الكود للعمل على Render
-    context = {
-        'backups': [],
-        'drive_configured': False,
-    }
+    from django.http import HttpResponse
 
-    return render(request, 'backup/dashboard.html', context)
+    # حل مؤقت - إرجاع HTML مباشر
+    html = """
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>النسخ الاحتياطية</title>
+        <meta charset="utf-8">
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    </head>
+    <body>
+        <div class="container mt-5">
+            <div class="row justify-content-center">
+                <div class="col-md-8">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3><i class="fas fa-download"></i> النسخ الاحتياطية</h3>
+                        </div>
+                        <div class="card-body text-center">
+                            <h5>تحميل نسخة احتياطية</h5>
+                            <p class="text-muted">احصل على نسخة من جميع بياناتك (العملاء، الديون، المدفوعات، الفواتير)</p>
+                            <a href="/backup/download/" class="btn btn-success btn-lg">
+                                <i class="fas fa-download"></i> تحميل النسخة الاحتياطية
+                            </a>
+                            <br><br>
+                            <a href="/" class="btn btn-secondary">العودة للرئيسية</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </body>
+    </html>
+    """
+
+    return HttpResponse(html)
 
 
 @login_required
 @user_passes_test(is_manager)
 def create_backup(request):
     """إنشاء نسخة احتياطية"""
-    from .backup_service import BackupService
-    from datetime import datetime
-
-    if request.method == 'POST':
-        backup_type = request.POST.get('backup_type', 'local')
-
-        try:
-            backup_service = BackupService()
-
-            if backup_type == 'google_drive':
-                try:
-                    from .backup_service import GoogleDriveService
-                    # رفع إلى Google Drive
-                    drive_service = GoogleDriveService()
-
-                    # إنشاء النسخة الاحتياطية في الذاكرة
-                    file_stream = backup_service.create_backup_stream()
-                    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-                    filename = f'backup_abu_alaa_{timestamp}.xlsx'
-
-                    # رفع إلى Google Drive
-                    success, result = drive_service.upload_backup(file_stream, filename)
-
-                    if success:
-                        messages.success(
-                            request,
-                            f'تم إنشاء النسخة الاحتياطية ورفعها إلى Google Drive بنجاح!\n'
-                            f'اسم الملف: {result["filename"]}'
-                        )
-                    else:
-                        messages.error(request, f'فشل في رفع النسخة الاحتياطية: {result}')
-                except Exception as e:
-                    messages.error(request, f'Google Drive غير متاح: {e}')
-
-            else:
-                # حفظ محلي - تحميل مباشر
-                return redirect('download_backup')
-
-        except Exception as e:
-            messages.error(request, f'خطأ في إنشاء النسخة الاحتياطية: {e}')
-
-    return redirect('backup_dashboard')
+    # تحويل مباشر للتحميل
+    return redirect('download_backup')
 
 
 @login_required
 @user_passes_test(is_manager)
 def download_backup(request):
     """تحميل نسخة احتياطية محلية"""
-    from .backup_service import BackupService
-    from django.http import HttpResponse
+    from django.http import HttpResponse, JsonResponse
     from datetime import datetime
+    import json
 
     try:
-        backup_service = BackupService()
-        file_stream = backup_service.create_backup_stream()
+        # إنشاء نسخة احتياطية بصيغة JSON بسيطة
+        from .models import Customer, Debt, Payment, Invoice, CompanySettings
 
+        backup_data = {
+            'timestamp': datetime.now().isoformat(),
+            'customers': [],
+            'debts': [],
+            'payments': [],
+            'invoices': [],
+            'company_settings': {}
+        }
+
+        # بيانات العملاء
+        for customer in Customer.objects.all():
+            backup_data['customers'].append({
+                'id': customer.id,
+                'name': customer.name,
+                'phone': customer.phone,
+                'email': customer.email or '',
+                'address': customer.address or '',
+                'page_number': customer.page_number or '',
+                'total_debt': str(customer.total_debt),
+                'remaining_debt': str(customer.remaining_debt),
+                'created_at': customer.created_at.isoformat(),
+            })
+
+        # بيانات الديون
+        for debt in Debt.objects.all():
+            backup_data['debts'].append({
+                'id': debt.id,
+                'customer_id': debt.customer.id,
+                'customer_name': debt.customer.name,
+                'amount': str(debt.amount),
+                'remaining_amount': str(debt.remaining_amount),
+                'description': debt.description or '',
+                'status': debt.status,
+                'created_at': debt.created_at.isoformat(),
+            })
+
+        # بيانات المدفوعات
+        for payment in Payment.objects.all():
+            backup_data['payments'].append({
+                'id': payment.id,
+                'debt_id': payment.debt.id,
+                'customer_name': payment.debt.customer.name,
+                'amount': str(payment.amount),
+                'payment_date': payment.payment_date.isoformat(),
+                'notes': payment.notes or '',
+            })
+
+        # بيانات الفواتير
+        for invoice in Invoice.objects.all():
+            backup_data['invoices'].append({
+                'id': invoice.id,
+                'customer_id': invoice.customer.id,
+                'customer_name': invoice.customer.name,
+                'invoice_number': invoice.invoice_number,
+                'total_amount': str(invoice.total_amount),
+                'status': invoice.status,
+                'created_at': invoice.created_at.isoformat(),
+            })
+
+        # إعدادات الشركة
+        try:
+            company = CompanySettings.objects.first()
+            if company:
+                backup_data['company_settings'] = {
+                    'name': company.name,
+                    'address': company.address or '',
+                    'phone': company.phone or '',
+                    'email': company.email or '',
+                    'currency': company.currency,
+                }
+        except:
+            pass
+
+        # إنشاء ملف JSON
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        filename = f'backup_abu_alaa_{timestamp}.xlsx'
+        filename = f'backup_abu_alaa_{timestamp}.json'
 
         response = HttpResponse(
-            file_stream.getvalue(),
-            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            json.dumps(backup_data, ensure_ascii=False, indent=2),
+            content_type='application/json; charset=utf-8'
         )
         response['Content-Disposition'] = f'attachment; filename="{filename}"'
 
         return response
 
     except Exception as e:
-        messages.error(request, f'خطأ في تحميل النسخة الاحتياطية: {e}')
-        return redirect('backup_dashboard')
+        return JsonResponse({'error': f'خطأ في تحميل النسخة الاحتياطية: {e}'}, status=500)
 
 
 @login_required
