@@ -43,6 +43,8 @@ CSRF_TRUSTED_ORIGINS = [
     'https://chargers-gallery-west-reporters.trycloudflare.com',
     'https://*.ngrok.io',
     'https://*.ngrok-free.app',
+    'https://*.onrender.com',
+    'https://abualaa.onrender.com',
     'http://localhost:8080',
     'http://127.0.0.1:8080',
 ]
@@ -169,6 +171,20 @@ if 'RAILWAY_ENVIRONMENT' in os.environ:
     SECURE_SSL_REDIRECT = False  # Railway يتعامل مع SSL
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
     USE_X_FORWARDED_HOST = True
+
+# إعدادات Render
+if 'RENDER' in os.environ:
+    DEBUG = False
+    ALLOWED_HOSTS = ['*']
+
+    # إعدادات الأمان للإنتاج
+    SECURE_SSL_REDIRECT = False  # Render يتعامل مع SSL
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+    USE_X_FORWARDED_HOST = True
+
+    # تعطيل CSRF للاختبار
+    CSRF_COOKIE_SECURE = False
+    CSRF_USE_SESSIONS = False
     USE_X_FORWARDED_PORT = True
 
 # Media files
