@@ -939,20 +939,10 @@ def currency_settings(request):
 @user_passes_test(is_manager)
 def backup_dashboard(request):
     """لوحة النسخ الاحتياطي"""
-    try:
-        from .backup_service import GoogleDriveService
-        # الحصول على قائمة النسخ الاحتياطية من Google Drive
-        drive_service = GoogleDriveService()
-        backups = drive_service.list_backups()
-        drive_configured = bool(drive_service.credentials_file and drive_service.folder_id)
-    except Exception as e:
-        # إذا فشل Google Drive، استخدم النسخ المحلية فقط
-        backups = []
-        drive_configured = False
-
+    # تبسيط الكود للعمل على Render
     context = {
-        'backups': backups,
-        'drive_configured': drive_configured,
+        'backups': [],
+        'drive_configured': False,
     }
 
     return render(request, 'backup/dashboard.html', context)
