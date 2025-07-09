@@ -9,13 +9,26 @@ python manage.py migrate --noinput
 
 # Create superuser if not exists
 echo "👤 Creating superuser..."
-python manage.py shell << EOF
+python manage.py shell << 'EOF'
 from django.contrib.auth.models import User
+
+# إنشاء المستخدم الأساسي
 if not User.objects.filter(username='admin').exists():
     User.objects.create_superuser('admin', 'admin@abualaa.com', 'admin123')
-    print('✅ Superuser created: admin/admin123')
+    print('✅ Admin user created: admin/admin123')
 else:
-    print('✅ Superuser already exists')
+    # تحديث كلمة المرور إذا كان موجود
+    user = User.objects.get(username='admin')
+    user.set_password('admin123')
+    user.save()
+    print('✅ Admin password updated: admin/admin123')
+
+# إنشاء مستخدم المدير
+if not User.objects.filter(username='manager').exists():
+    User.objects.create_superuser('manager', 'manager@abualaa.com', 'manager123')
+    print('✅ Manager user created: manager/manager123')
+
+print('🎉 All users ready!')
 EOF
 
 # Collect static files
