@@ -1091,17 +1091,41 @@ def download_backup(request):
 @user_passes_test(is_manager)
 def backup_settings(request):
     """إعدادات النسخ الاحتياطي التلقائي"""
-    if request.method == 'POST':
-        # هنا يمكن إضافة إعدادات الجدولة التلقائية
-        # مثل تفعيل النسخ اليومي أو الأسبوعي
-        messages.success(request, 'تم حفظ إعدادات النسخ الاحتياطي!')
-        return redirect('backup_dashboard')
+    from django.http import HttpResponse
 
-    context = {
-        'backup_enabled': True,  # يمكن جعل هذا قابل للتخصيص
-    }
+    html = """
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>إعدادات النسخ الاحتياطية</title>
+        <meta charset="utf-8">
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    </head>
+    <body>
+        <div class="container mt-5">
+            <div class="row justify-content-center">
+                <div class="col-md-8">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>إعدادات النسخ الاحتياطية</h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="alert alert-info">
+                                <h5>النسخ الاحتياطية متاحة كتحميل يدوي</h5>
+                                <p>يمكنك تحميل نسخة احتياطية من جميع البيانات في أي وقت</p>
+                            </div>
+                            <a href="/backup/" class="btn btn-primary">العودة للنسخ الاحتياطية</a>
+                            <a href="/" class="btn btn-secondary">العودة للرئيسية</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </body>
+    </html>
+    """
 
-    return render(request, 'backup/settings.html', context)
+    return HttpResponse(html)
 
 
 @login_required
