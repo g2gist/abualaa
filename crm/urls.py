@@ -28,6 +28,7 @@ urlpatterns = [
     path('backup/', views.backup_dashboard, name='backup_dashboard'),
     path('backup/create/', views.create_backup, name='create_backup'),
     path('backup/download/', views.download_backup, name='download_backup'),
+    path('backup/upload-drive/', views.upload_to_drive, name='upload_to_drive'),
     path('backup/settings/', views.backup_settings, name='backup_settings'),
     path('customers/<int:customer_id>/', views.customer_detail, name='customer_detail'),
     path('customers/<int:customer_id>/edit/', views.customer_edit, name='customer_edit'),

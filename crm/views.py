@@ -969,51 +969,148 @@ def currency_settings(request):
 @user_passes_test(is_manager)
 def backup_dashboard(request):
     """لوحة النسخ الاحتياطي"""
-    from django.http import HttpResponse
+    from .google_drive_service import GoogleDriveService
 
-    # حل مؤقت - إرجاع HTML مباشر
-    html = """
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <title>النسخ الاحتياطية</title>
-        <meta charset="utf-8">
-        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    </head>
-    <body>
-        <div class="container mt-5">
-            <div class="row justify-content-center">
-                <div class="col-md-8">
-                    <div class="card">
-                        <div class="card-header">
-                            <h3><i class="fas fa-download"></i> النسخ الاحتياطية</h3>
-                        </div>
-                        <div class="card-body text-center">
-                            <h5>تحميل نسخة احتياطية</h5>
-                            <p class="text-muted">احصل على نسخة من جميع بياناتك (العملاء، الديون، المدفوعات، الفواتير)</p>
-                            <a href="/backup/download/" class="btn btn-success btn-lg">
-                                <i class="fas fa-download"></i> تحميل النسخة الاحتياطية
-                            </a>
-                            <br><br>
-                            <a href="/" class="btn btn-secondary">العودة للرئيسية</a>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </body>
-    </html>
-    """
+    # اختبار Google Drive
+    drive_service = GoogleDriveService()
+    drive_connected, drive_message = drive_service.test_connection()
 
-    return HttpResponse(html)
+    # الحصول على النسخ الاحتياطية من Google Drive
+    backups = []
+    if drive_connected:
+        backups = drive_service.list_backups()
+
+    context = {
+        'drive_connected': drive_connected,
+        'drive_message': drive_message,
+        'backups': backups,
+        'google_drive_setup': drive_service.credentials_file and drive_service.folder_id,
+    }
+
+    return render(request, 'backup/dashboard.html', context)
 
 
 @login_required
 @user_passes_test(is_manager)
 def create_backup(request):
     """إنشاء نسخة احتياطية"""
-    # تحويل مباشر للتحميل
-    return redirect('download_backup')
+    if request.method == 'POST':
+        backup_type = request.POST.get('backup_type', 'local')
+
+        if backup_type == 'google_drive':
+            return redirect('upload_to_drive')
+        else:
+            return redirect('download_backup')
+
+    return redirect('backup_dashboard')
+
+
+@login_required
+@user_passes_test(is_manager)
+def upload_to_drive(request):
+    """رفع نسخة احتياطية إلى Google Drive"""
+    from .google_drive_service import GoogleDriveService
+    from datetime import datetime
+    import json
+
+    try:
+        # إنشاء البيانات
+        from .models import Customer, Debt, Payment, Invoice, CompanySettings
+
+        backup_data = {
+            'timestamp': datetime.now().isoformat(),
+            'customers': [],
+            'debts': [],
+            'payments': [],
+            'invoices': [],
+            'company_settings': {}
+        }
+
+        # بيانات العملاء
+        for customer in Customer.objects.all():
+            backup_data['customers'].append({
+                'id': customer.id,
+                'name': customer.name,
+                'phone': customer.phone,
+                'email': customer.email or '',
+                'address': customer.address or '',
+                'page_number': customer.page_number or '',
+                'total_debt': str(customer.total_debt),
+                'remaining_debt': str(customer.remaining_debt),
+            })
+
+        # بيانات الديون
+        for debt in Debt.objects.all():
+            backup_data['debts'].append({
+                'id': debt.id,
+                'customer_name': debt.customer.name,
+                'amount': str(debt.amount),
+                'remaining_amount': str(debt.remaining_amount),
+                'description': debt.description or '',
+                'status': debt.status,
+                'created_date': debt.created_date.isoformat(),
+                'due_date': debt.due_date.isoformat(),
+            })
+
+        # بيانات المدفوعات
+        for payment in Payment.objects.all():
+            backup_data['payments'].append({
+                'id': payment.id,
+                'customer_name': payment.debt.customer.name,
+                'amount': str(payment.amount),
+                'payment_date': payment.payment_date.isoformat(),
+                'payment_method': payment.payment_method,
+                'notes': payment.notes or '',
+            })
+
+        # بيانات الفواتير
+        for invoice in Invoice.objects.all():
+            backup_data['invoices'].append({
+                'id': invoice.id,
+                'customer_name': invoice.debt.customer.name,
+                'invoice_number': invoice.invoice_number,
+                'total_amount': str(invoice.debt.amount),
+                'status': invoice.status,
+                'created_date': invoice.created_date.isoformat(),
+            })
+
+        # إعدادات الشركة
+        try:
+            company = CompanySettings.objects.first()
+            if company:
+                backup_data['company_settings'] = {
+                    'name': company.company_name,
+                    'address': company.address or '',
+                    'phone': company.phone or '',
+                    'email': company.email or '',
+                    'currency': company.currency,
+                }
+        except:
+            pass
+
+        # رفع إلى Google Drive
+        drive_service = GoogleDriveService()
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        filename = f'backup_abu_alaa_{timestamp}.json'
+
+        json_content = json.dumps(backup_data, ensure_ascii=False, indent=2)
+
+        success, result = drive_service.upload_backup(json_content, filename)
+
+        if success:
+            messages.success(
+                request,
+                f'تم رفع النسخة الاحتياطية إلى Google Drive بنجاح!\n'
+                f'اسم الملف: {result["filename"]}\n'
+                f'الحجم: {int(result.get("size", 0)) / 1024:.1f} KB'
+            )
+        else:
+            messages.error(request, f'فشل في رفع النسخة الاحتياطية: {result}')
+
+    except Exception as e:
+        messages.error(request, f'خطأ في إنشاء النسخة الاحتياطية: {str(e)}')
+
+    return redirect('backup_dashboard')
 
 
 @login_required
