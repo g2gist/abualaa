@@ -161,6 +161,14 @@ STATICFILES_DIRS = [
 # إعدادات WhiteNoise للملفات الثابتة
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
+# إعدادات الملفات المرفوعة
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
+
+# إعدادات Google Drive API
+GOOGLE_DRIVE_CREDENTIALS = env('GOOGLE_DRIVE_CREDENTIALS', default=None)
+GOOGLE_DRIVE_FOLDER_ID = env('GOOGLE_DRIVE_FOLDER_ID', default=None)
+
 # إعدادات Railway
 import os
 if 'RAILWAY_ENVIRONMENT' in os.environ:
@@ -186,12 +194,14 @@ if 'RENDER' in os.environ:
     CSRF_COOKIE_SECURE = False
     CSRF_USE_SESSIONS = False
 
-    # استخدام SQLite للبداية
+    # استخدام PostgreSQL من Render
+    import dj_database_url
     DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': '/opt/render/project/src/db.sqlite3',
-        }
+        'default': dj_database_url.parse(
+            env('DATABASE_URL', default='sqlite:///db.sqlite3'),
+            conn_max_age=600,
+            conn_health_checks=True,
+        )
     }
     USE_X_FORWARDED_PORT = True
 
