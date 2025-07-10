@@ -37,6 +37,7 @@ urlpatterns = [
     # الديون
     path('debts/', views.debt_list, name='debt_list'),
     path('debts/add/', views.debt_create, name='debt_create'),
+    path('debts/add-simple/', views.debt_create_simple, name='debt_create_simple'),
     path('debts/add/<int:customer_id>/', views.debt_create, name='debt_create_for_customer'),
     path('debts/<int:debt_id>/', views.debt_detail, name='debt_detail'),
 

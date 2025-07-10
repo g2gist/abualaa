@@ -336,19 +336,92 @@ def debt_create(request, customer_id=None):
                 'selected_customer': customer
             })
 
-        debt = Debt.objects.create(
-            customer_id=customer_id,
-            amount=amount,
-            description=description,
-            due_date=due_date,
-            created_by=request.user
-        )
+        try:
+            debt = Debt.objects.create(
+                customer_id=customer_id,
+                amount=amount,
+                description=description,
+                due_date=due_date,
+                created_by=request.user
+            )
 
-        # إنشاء فاتورة تلقائياً
-        Invoice.objects.create(debt=debt)
+            # إنشاء فاتورة تلقائياً مع معالجة الأخطاء
+            try:
+                invoice = Invoice.objects.create(debt=debt)
+                messages.success(request, f'تم إضافة الدين والفاتورة بنجاح للعميل {debt.customer.name}')
+            except Exception as invoice_error:
+                # إذا فشل إنشاء الفاتورة، احتفظ بالدين
+                messages.success(request, f'تم إضافة الدين بنجاح للعميل {debt.customer.name}')
+                messages.warning(request, f'تحذير: لم يتم إنشاء الفاتورة تلقائياً - {str(invoice_error)}')
 
-        messages.success(request, f'تم إضافة الدين بنجاح للعميل {debt.customer.name}')
-        return redirect('debt_detail', debt_id=debt.id)
+            return redirect('debt_detail', debt_id=debt.id)
+
+        except Exception as e:
+            messages.error(request, f'خطأ في إضافة الدين: {str(e)}')
+            return render(request, 'debts/form.html', {
+                'customers': Customer.objects.all().order_by('name'),
+                'selected_customer': customer
+            })
+
+    customers = Customer.objects.all().order_by('name')
+    context = {
+        'customers': customers,
+        'selected_customer': customer,
+    }
+    return render(request, 'debts/form.html', context)
+
+
+@login_required
+@user_passes_test(is_employee)
+def debt_create_simple(request, customer_id=None):
+    """إضافة دين بسيط بدون فاتورة"""
+    customer = None
+    if customer_id:
+        customer = get_object_or_404(Customer, id=customer_id)
+
+    if request.method == 'POST':
+        customer_id = request.POST.get('customer')
+        amount = request.POST.get('amount')
+        description = request.POST.get('description')
+        due_date = request.POST.get('due_date')
+
+        # التحقق من البيانات
+        if not all([customer_id, amount, description, due_date]):
+            messages.error(request, 'جميع الحقول مطلوبة')
+            return render(request, 'debts/form.html', {
+                'customers': Customer.objects.all().order_by('name'),
+                'selected_customer': customer
+            })
+
+        try:
+            amount = Decimal(amount)
+            if amount <= 0:
+                raise ValueError("المبلغ يجب أن يكون أكبر من صفر")
+        except (ValueError, TypeError):
+            messages.error(request, 'المبلغ غير صحيح')
+            return render(request, 'debts/form.html', {
+                'customers': Customer.objects.all().order_by('name'),
+                'selected_customer': customer
+            })
+
+        try:
+            debt = Debt.objects.create(
+                customer_id=customer_id,
+                amount=amount,
+                description=description,
+                due_date=due_date,
+                created_by=request.user
+            )
+
+            messages.success(request, f'تم إضافة الدين بنجاح للعميل {debt.customer.name}')
+            return redirect('debt_detail', debt_id=debt.id)
+
+        except Exception as e:
+            messages.error(request, f'خطأ في إضافة الدين: {str(e)}')
+            return render(request, 'debts/form.html', {
+                'customers': Customer.objects.all().order_by('name'),
+                'selected_customer': customer
+            })
 
     customers = Customer.objects.all().order_by('name')
     context = {

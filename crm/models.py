@@ -239,12 +239,25 @@ class Invoice(models.Model):
     def save(self, *args, **kwargs):
         """إنشاء رقم فاتورة تلقائي"""
         if not self.invoice_number:
-            last_invoice = Invoice.objects.order_by('-id').first()
-            if last_invoice:
-                last_number = int(last_invoice.invoice_number.split('-')[-1])
-                self.invoice_number = f"INV-{last_number + 1:06d}"
-            else:
-                self.invoice_number = "INV-000001"
+            try:
+                # البحث عن آخر فاتورة
+                last_invoice = Invoice.objects.order_by('-id').first()
+                if last_invoice and last_invoice.invoice_number:
+                    try:
+                        # استخراج الرقم من آخر فاتورة
+                        last_number = int(last_invoice.invoice_number.split('-')[-1])
+                        self.invoice_number = f"INV-{last_number + 1:06d}"
+                    except (ValueError, IndexError):
+                        # إذا فشل في استخراج الرقم، ابدأ من جديد
+                        self.invoice_number = f"INV-{Invoice.objects.count() + 1:06d}"
+                else:
+                    self.invoice_number = "INV-000001"
+            except Exception:
+                # في حالة أي خطأ، استخدم timestamp
+                from datetime import datetime
+                timestamp = datetime.now().strftime('%Y%m%d%H%M%S')
+                self.invoice_number = f"INV-{timestamp}"
+
         super().save(*args, **kwargs)
 
 
